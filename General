@@ -1,0 +1,187 @@
+import math
+
+
+def compute_rolling_resistance_coefficient(v, f_WR0=0.00046, C_R0=0.0006, v_00=27.778):
+    """
+    Calculate the rolling resistance coefficient at velocity v.
+
+    Parameters:
+    - v: Velocity of the train (in m/s).
+    - f_WR0: Rolling resistance coefficient at v=0 (default is 0.00046).
+    - C_R0: Rolling resistance constant (default is 0.0006).
+    - v_00: Velocity constant (default is 27.778 m/s, which is 100 km/h).
+
+    Returns:
+    - Rolling resistance coefficient at velocity v.
+    """
+    return f_WR0 + C_R0 * (v / v_00) ** 2
+
+
+# Example:
+velocity = 30  # Example velocity in m/s
+resistance_coefficient = compute_rolling_resistance_coefficient(velocity)
+print(f"Rolling resistance coefficient for the train at {velocity} m/s is: {resistance_coefficient:.6f}")
+###########################################
+
+
+def compute_dynamic_resistance(v, k_dyn=0.001, v_00=27.778):
+    """
+    Calculate the dynamic resistance coefficient for the train.
+
+    Parameters:
+    - v: Velocity of the train (in m/s).
+    - k_dyn: Dynamic resistance factor (default is 0.001 for worst-case poor conditions).
+    - v_00: Velocity constant (default is 27.778 m/s, which is 100 km/h).
+
+    Returns:
+    - Dynamic resistance coefficient.
+    """
+    return k_dyn * (v / v_00)
+
+
+# Example:
+velocity = 30  # Example velocity in m/s
+dynamic_resistance_coefficient = compute_dynamic_resistance(velocity)
+print(
+    f"Dynamic resistance coefficient for the train at {velocity} m/s on a poor track is: {dynamic_resistance_coefficient:.6f}")
+#############################################
+
+
+def compute_acoustic_resistance(f_acoustic=0.001):
+    """
+    Calculate the acoustic resistance coefficient for the train.
+
+
+    Returns:
+    - Dynamic resistance coefficient.
+    """
+    return f_acoustic
+
+
+acoustic_resistance_coefficient = compute_acoustic_resistance()
+print(
+    f"Acoustic resistance coefficient for the train is: {acoustic_resistance_coefficient:.6f}")
+###############################################
+
+
+def compute_bearing_resistance(mu_la, constant=0.120):
+    """
+    Calculate the bearing resistance for the train.
+
+    Parameters:
+    - mu_la: Coefficient for bearing resistance.
+    - constant: Given constant (default is 0.120).
+
+    Returns:
+    - Bearing resistance.
+    """
+    return constant * mu_la
+
+
+# Example:
+mu_la_value = 0.0017  # Given coefficient
+bearing_resistance = compute_bearing_resistance(mu_la_value)
+print(f"Bearing resistance for the train is: {bearing_resistance:.6f}")
+################################################
+
+
+def compute_sliding_resistance(f_sliding=0.001):
+    """
+    Calculate the acoustic resistance coefficient for the train.
+
+
+    Returns:
+    - Dynamic resistance coefficient.
+    """
+    return f_sliding
+
+
+sliding_resistance_coefficient = compute_sliding_resistance()
+print(
+    f"Sliding resistance coefficient for the train is: {sliding_resistance_coefficient:.6f}")
+###############################
+
+
+def compute_starting_resistance(a_anf=0.1, mass_factor=1.1, g=9.81):
+    """
+    Calculate the starting resistance for the train.
+
+    Parameters:
+    - a_anf: Starting acceleration (default is 0.1 m/s² for freight trains).
+    - zeta: Mass factor of the train (default is 1.1).
+    - g: Gravitational acceleration (default is 9.81 m/s²).
+
+    Returns:
+    - Starting resistance.
+    """
+    return (a_anf * mass_factor) / g
+
+
+# Compute the starting resistance:
+f_wst = compute_starting_resistance()
+print(f"Starting resistance for the freight train is: {f_wst:.6f}")
+###################
+
+
+def compute_gradient_resistance(grade_permille, mass, g=9.81):
+    """
+    Calculate the gradient resistance based on the grade in percent per mille and mass.
+
+    Parameters:
+    - Grade in percent per mille.
+    - G_Fz: Mass of the train.
+
+    Returns:
+    - Gradient resistance.
+    """
+    # Calculate the angle alpha in radians based on the grade in percent per mille
+    alpha_rad = math.atan(grade_permille / 1000)
+    # Calculate gradient resistance
+    F_N = mass * math.sin(alpha_rad) * g
+    return F_N
+
+
+# Given Values:
+grade_value = 12.5  # Example grade in percent per mille
+mass = 90000  # Example mass of the train in kg (or any relevant unit)
+
+gradient_resistance = compute_gradient_resistance(grade_value, mass)
+print(f"Gradient resistance for grade = {grade_value}‰ and mass = {mass} is: {gradient_resistance:.6f} N")
+
+
+#############################
+
+
+def compute_aerodynamic_resistance(Vf, delta_v, C_lok, C_wg, ANorm=10, rhoNorm=1.225):
+    """
+    Calculate the aerodynamic resistance of the train based on the given parameters.
+
+    Parameters:
+    - Vf: Speed of the train in m/s.
+    - delta_v: Wind speed difference in m/s.
+    - C_lok: Aerodynamic resistance coefficient of the locomotive in kg/m^3.
+    - C_wg: Aerodynamic resistance coefficient of the wagon in kg/m^3.
+    - ANorm: Cross-sectional area in the x-direction (default = 10 m^2).
+    - rhoNorm: Standard air density (default = 1.225 kg/m^3).
+
+    Returns:
+    - Aerodynamic resistance in N.
+    """
+    # Calculate the aerodynamic resistance coefficient for the entire train
+    C_Luz = 0.5 * rhoNorm * (C_lok + C_wg)
+    # Calculate the aerodynamic resistance
+    F_WLuz = C_Luz * ANorm * ((Vf/3.6) + delta_v) ** 2
+    return F_WLuz
+
+
+# Given values
+C_lok_value = 0.5  # Example value for aerodynamic resistance coefficient of the locomotive
+C_wg_value = 0.5  # Example value for aerodynamic resistance coefficient of the wagon
+delta_v_value = 10 / 3.6  # Convert from km/h to m/s
+
+# Loop through the speed range from 0 to 120 km/h and calculate aerodynamic resistance
+for Vf in range(0, 121):  # 121 ensures we go up to 120
+    # Vf_value = Vf_kmh / 3.6  # Convert from km/h to m/s
+    aerodynamic_resistance = compute_aerodynamic_resistance(Vf, delta_v_value, C_lok_value, C_wg_value)
+    print(f"Aerodynamic resistance for the train at {Vf} km/h is: {aerodynamic_resistance:.6f} N")
+
