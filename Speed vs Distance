@@ -1,0 +1,162 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Constants
+initial_velocity = 0  # m/s
+v_max = 25 / 3.6  # m/s
+acceleration = 0.1  # m/s^2
+deceleration = -0.1  # m/s^2
+
+# Stop locations and distances
+stops = [1000, 185, 425, 300, 300, 425, 185, 1000]  # Distances to stop in meters
+
+# Lists to store values
+velocity = []
+distance_covered = []
+segment_details = []
+
+for i in range(len(stops)):
+    segment_info = {}
+    distance_segment = stops[i]
+
+    t_acceleration = (v_max - initial_velocity) / acceleration
+    d_acceleration = 0.5 * acceleration * t_acceleration ** 2
+    t_deceleration = v_max / abs(deceleration)
+    d_deceleration = 0.5 * abs(deceleration) * t_deceleration ** 2
+    v_peak = v_max
+
+    # Long Segment
+    if distance_segment > (d_acceleration + d_deceleration):
+        d_coasting = distance_segment - (d_acceleration + d_deceleration)
+        t_coasting = d_coasting / v_max
+        segment_info['acceleration'] = (initial_velocity, v_max, 0, d_acceleration)
+        segment_info['coasting'] = (v_max, v_max, d_acceleration, d_acceleration + d_coasting)
+        segment_info['deceleration'] = (v_max, 0, d_acceleration + d_coasting, distance_segment)
+
+        # ... [rest of the code]
+
+        # Medium Segment
+        # Condition 2: Prioritize having a speed-hold phase
+    elif distance_segment > 2 * d_acceleration:
+        # Check if after accelerating, there's enough room to decelerate from v_peak
+        remaining_distance_after_accel = distance_segment - d_acceleration
+        possible_v_peak = np.sqrt(2 * acceleration * remaining_distance_after_accel)
+        if possible_v_peak < v_max:
+            v_peak = possible_v_peak
+            d_coasting = 0  # No coasting phase
+        else:
+            v_peak = v_max
+            d_coasting = distance_segment - (d_acceleration + d_deceleration)
+        t_coasting = d_coasting / v_peak
+        t_deceleration = v_peak / abs(deceleration)
+        segment_info['acceleration'] = (initial_velocity, v_peak, 0, d_acceleration)
+        segment_info['coasting'] = (v_peak, v_peak, d_acceleration, d_acceleration + d_coasting)
+        segment_info['deceleration'] = (v_peak, 0, d_acceleration + d_coasting, distance_segment)
+
+    # Short Segment
+    else:
+        d_acceleration = distance_segment / 2
+        d_deceleration = distance_segment - d_acceleration
+        v_peak = np.sqrt(2 * acceleration * d_acceleration)
+        t_acceleration = v_peak / acceleration
+        t_deceleration = v_peak / abs(deceleration)
+        t_coasting = 0
+        d_coasting = 0  # Explicitly set for short segments
+        segment_info['acceleration'] = (initial_velocity, v_peak, 0, d_acceleration)
+        segment_info['deceleration'] = (v_peak, 0, d_acceleration, distance_segment)
+
+
+    segment_details.append(segment_info)
+
+    total_time = t_acceleration + t_coasting + t_deceleration
+    time_step = 0.1
+    t = 0
+    while t <= total_time:
+        if t <= t_acceleration:
+            v = initial_velocity + acceleration * t
+            x = initial_velocity * t + 0.5 * acceleration * t ** 2
+        elif t <= (t_acceleration + t_coasting):
+            v = v_peak
+            x = d_acceleration + v_peak * (t - t_acceleration)
+        else:
+            t_from_coasting_end = t - (t_acceleration + t_coasting)
+            v = v_peak + deceleration * t_from_coasting_end
+            x = d_acceleration + d_coasting + v_peak * t_from_coasting_end + 0.5 * deceleration * t_from_coasting_end ** 2
+
+        velocity.append(v)
+        distance_covered.append(x + sum(stops[:i]))
+        t += time_step
+
+for idx, segment in enumerate(segment_details, start=1):
+    print(f"Stop {idx}:")
+    for phase, values in segment.items():
+        print(
+            f"{phase.capitalize()}: Start Speed: {values[0]:.2f} m/s, End Speed: {values[1]:.2f} m/s, Start Distance: {values[2]:.2f} m, End Distance: {values[3]:.2f} m")
+    print()
+#########################################
+# Plotting
+# Defining line style, color, and width
+line_color = '#00549F'
+line_style = '-'
+line_width = 2
+plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'})
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax2 = ax1.twiny()
+fig.subplots_adjust(bottom=0.2)
+ax1.plot(distance_covered, velocity, color=line_color, linestyle=line_style, linewidth=line_width)
+ax1.grid(True, which='major', linestyle='--', linewidth=0.5, color='grey')
+ax1.minorticks_on()
+ax1.grid(which='minor', linestyle=':', linewidth='0.5', color='grey')
+plt.title('Driving profile of the route with stops', fontsize=14, fontweight='bold')
+ax1.set_xlabel('Distance (m)', fontsize=12)
+ax1.set_ylabel('Speed (m/s)', fontsize=12)
+
+new_tick_locations = np.array([0, 1000, 1185, 1610, 1910, 2210, 2635, 2820, 3820])
+labels = ['Start', 'h1', 'h2', 'h3', 'end', 'h5', 'h6', 'h7', 'Start']
+ax1.set_ylim(bottom=0)
+ax2.set_xlim(ax1.get_xlim())
+
+# Adjust for twin axis
+ax2.xaxis.set_ticks_position("bottom")
+ax2.xaxis.set_label_position("bottom")
+ax2.spines["bottom"].set_position(("axes", -0.15))
+ax2.set_frame_on(True)
+ax2.patch.set_visible(False)
+for sp in ax2.spines.values():
+    sp.set_visible(False)
+ax2.spines["bottom"].set_visible(True)
+
+ax2.set_xticks(new_tick_locations)
+ax2.set_xticklabels(labels)
+plt.grid(True)
+plt.show()
+# Redefining cumulative_distances and line style variables in the same block
+# cumulative_distances = np.cumsum([0] + stops)[:-1]  # Calculate cumulative distances for each stop
+#
+# # Defining line style, color, and width
+# line_color = '#00549F'
+# line_style = '-'
+# line_width = 2
+#
+# # Enhanced plot with all necessary definitions and enhancements
+# fig, ax1 = plt.subplots(figsize=(10, 6))
+#
+# ax1.plot(distance_covered, velocity, color=line_color, linestyle=line_style, linewidth=line_width)
+# ax1.set_title('Speed vs Distance Profile of the Train Journey', fontsize=14, fontweight='bold')
+# ax1.set_xlabel('Distance (m)', fontsize=12)
+# ax1.set_ylabel('Speed (m/s)', fontsize=12)
+#
+# # Refining the axis
+# ax1.set_ylim(bottom=0)
+# ax1.grid(True, which='major', linestyle='--', linewidth=0.5, color='grey')
+# ax1.minorticks_on()
+# ax1.grid(which='minor', linestyle=':', linewidth='0.5', color='grey')
+#
+# # Adding informative elements for stops
+# for stop in cumulative_distances:
+#     ax1.axvline(x=stop, color='grey', linestyle='--', linewidth=1)
+#     ax1.text(stop, -1, f'{stop}m', horizontalalignment='center', verticalalignment='center', fontsize=10, color='grey')
+#
+# plt.tight_layout()
+# plt.show()
