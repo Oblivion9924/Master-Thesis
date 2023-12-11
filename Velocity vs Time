@@ -1,0 +1,114 @@
+# Updated code with fixed plotting and velocity calculation
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+max_velocity = 25 / 3.6  # 25 km/h in m/s
+acceleration = 0.1  # m/s^2
+deceleration = -0.1  # m/s^2
+segments = [(1000, 20), (185, 40), (425, 20), (300, 40), (300, 40), (425, 20), (185, 40), (1000, 0)]
+time_step = 0.1  # seconds
+
+# Function to calculate the time to reach a certain velocity
+def time_to_velocity(u, v, a):
+    return (v - u) / a
+
+# Function to calculate distance covered during acceleration or deceleration
+def distance_traveled(u, v, a):
+    return (v**2 - u**2) / (2 * a)
+
+# Initialize variables for storing the data
+velocity_time_data = []
+segment_details = []
+time = 0
+
+for distance, stop_time in segments:
+    segment_info = {}
+    start_time = time
+
+    # Acceleration phase
+    time_to_max_vel = time_to_velocity(0, max_velocity, acceleration)
+    distance_to_max_vel = distance_traveled(0, max_velocity, acceleration)
+
+    if distance_to_max_vel * 2 > distance:
+        # Short segment: only acceleration and deceleration
+        meet_velocity = np.sqrt(distance * acceleration)
+        time_to_meet_vel = time_to_velocity(0, meet_velocity, acceleration)
+
+        # Acceleration
+        segment_info['acceleration'] = (0, meet_velocity, start_time, start_time + time_to_meet_vel)
+        accel_time = np.arange(0, time_to_meet_vel, time_step)
+        velocity_time_data.extend([(t + time, acceleration * t) for t in accel_time])
+        start_time += time_to_meet_vel
+
+        # Deceleration
+        segment_info['deceleration'] = (meet_velocity, 0, start_time, start_time + time_to_meet_vel)
+        decel_time = np.arange(time_step, time_to_meet_vel + time_step, time_step)
+        velocity_time_data.extend([(t + start_time, meet_velocity + deceleration * t) for t in decel_time])
+        start_time += time_to_meet_vel
+    else:
+        # Longer segment: acceleration, constant velocity, deceleration
+        # Acceleration
+        segment_info['acceleration'] = (0, max_velocity, start_time, start_time + time_to_max_vel)
+        accel_time = np.arange(0, time_to_max_vel, time_step)
+        velocity_time_data.extend([(t + time, acceleration * t) for t in accel_time])
+        start_time += time_to_max_vel
+
+        # Constant velocity
+        const_dist = distance - 2 * distance_to_max_vel
+        const_time = const_dist / max_velocity
+        segment_info['constant velocity'] = (max_velocity, max_velocity, start_time, start_time + const_time)
+        const_velocity_time = np.arange(time_step, const_time + time_step, time_step)
+        velocity_time_data.extend([(t + start_time, max_velocity) for t in const_velocity_time])
+        start_time += const_time
+
+        # Deceleration
+        segment_info['deceleration'] = (max_velocity, 0, start_time, start_time + time_to_max_vel)
+        decel_time = np.arange(time_step, time_to_max_vel + time_step, time_step)
+        velocity_time_data.extend([(t + start_time, max_velocity + deceleration * t) for t in decel_time])
+        start_time += time_to_max_vel
+
+    # Stopping phase
+    stop_time_range = np.arange(time_step, stop_time + time_step, time_step)
+    velocity_time_data.extend([(t + start_time, 0) for t in stop_time_range])
+
+    # Add the segment to the list
+    segment_details.append(segment_info)
+    time = start_time + stop_time
+
+# Extracting time and velocity for plotting
+times, velocities = zip(*velocity_time_data)
+
+# Code to print the initial speed, initial time, end speed, and end time for each phase of each segment
+
+print("Detailed Phase Information for Each Segment:\n")
+
+for idx, segment in enumerate(segment_details, start=1):
+    print(f"Segment {idx}:")
+    for phase, values in segment.items():
+        print(
+            f"{phase.capitalize()}: Start Speed: {values[0]:.2f} m/s, End Speed: {values[1]:.2f} m/s, Start Time: {values[2]:.2f} s, End Time: {values[3]:.2f} s")
+    print()
+
+# Plotting the graph
+# Defining line style, color, and width
+line_color = '#00549F'
+line_style = '-'
+line_width = 2
+plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'})
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+ax1.plot(times, velocities, color=line_color, linestyle=line_style, linewidth=line_width)
+# ax1.grid(True, which='major', linestyle='--', linewidth=0.5, color='grey')
+# ax1.minorticks_on()
+# ax1.grid(which='minor', linestyle=':', linewidth='0.5', color='grey')
+plt.xlabel('Time (s)', fontsize=12)
+plt.ylabel('Velocity (m/s)', fontsize=12)
+plt.title('Velocity vs Time for the Train Journey', fontsize=14, fontweight='bold')
+
+new_tick_locations = np.array([0, 150, 300, 450, 600, 750, 900, 1050, 1200, 1350])
+# labels = ['Start', 'h1', 'h2', 'h3', 'end', 'h5', 'h6', 'h7', 'Start']
+plt.xticks(new_tick_locations)
+plt.grid(True)
+plt.show()
