@@ -107,7 +107,7 @@ plt.xlabel('Time (s)', fontsize=12)
 plt.ylabel('Velocity (m/s)', fontsize=12)
 plt.title('Velocity vs Time for the Train Journey', fontsize=14, fontweight='bold')
 
-new_tick_locations = np.array([0, 150, 300, 450, 600, 750, 900, 1050, 1200, 1350])
+new_tick_locations = np.array([0, 130, 260, 390, 520, 650, 780, 910, 1040, 1170, 1300])
 # labels = ['Start', 'h1', 'h2', 'h3', 'end', 'h5', 'h6', 'h7', 'Start']
 plt.xticks(new_tick_locations)
 plt.grid(True)
